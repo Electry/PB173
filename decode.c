@@ -508,6 +508,7 @@ void proc_labels(instr_t instr[], int count) {
         case OP_JNE:
         case OP_JMP_EB: // rel8off
         case OP_JMP_E9: // rel32off
+        case OP_CALL:
           is_jump = true; // print dest. label
           dest = instr[i].addr + instr[i].len + instr[i].value;
           break;

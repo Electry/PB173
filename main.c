@@ -5,7 +5,7 @@
 
 #include "decode.h"
 
-void argv_to_bytes(byte_t bytes[], const char *argv[], int argc) {
+static void argv_to_bytes(byte_t bytes[], const char *argv[], int argc) {
   for (int i = 1; i < argc; i++) {
     bytes[i - 1] = (byte_t) strtol(argv[i], NULL, 16);
   }
