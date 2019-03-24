@@ -429,7 +429,7 @@ static int decode_single(instr_t *instr, byte_t bytes[]) {
 
 UNK_OPCODE:
   format_mnemonic(instr, "unknown", "opcode");
-  return 1; // skip 1 byte
+  return pos; // skip bytes
 }
 
 /**
