@@ -7,13 +7,13 @@
 #include "decode.h"
 
 // GPR mnemonics, index = encoding
-const char * const GPR_64b[] = {
+static const char * const GPR_64b[] = {
   "rax", "rcx", "rdx", "rbx",
   "rsp", "rbp", "rsi", "rdi",
   "r8",  "r9",  "r10", "r11",
   "r12", "r13", "r14", "r15"
 };
-const char * const GPR_32b[] = {
+static const char * const GPR_32b[] = {
   "eax", "ecx", "edx", "ebx",
   "esp", "ebp", "esi", "edi",
   "r8d",  "r9d",  "r10d", "r11d",
@@ -23,7 +23,7 @@ const char * const GPR_32b[] = {
 /**
  * Decodes immediate signed value from sequence of bytes
  */
-long long dec_imm(byte_t bytes[], int *pos, int imm_size) {
+static long long dec_imm(byte_t bytes[], int *pos, int imm_size) {
   long long value = 0;
 
   switch (imm_size) {
@@ -50,7 +50,7 @@ long long dec_imm(byte_t bytes[], int *pos, int imm_size) {
 /**
  * Decodes ModRM fields from byte
  */
-bool dec_modrm(byte_t bytes[], int *pos, instr_t *instr) {
+static bool dec_modrm(byte_t bytes[], int *pos, instr_t *instr) {
   instr->modrm.mod = (bytes[*pos] & 0b11000000) >> 6;
   instr->modrm.reg = (bytes[*pos] & 0b00111000) >> 3;
   instr->modrm.rm  = (bytes[*pos] & 0b00000111);
@@ -62,7 +62,7 @@ bool dec_modrm(byte_t bytes[], int *pos, instr_t *instr) {
  * Checks if next byte is REX byte
  *  If yes, decodes rex fields
  */
-bool dec_rex(byte_t bytes[], int *pos, instr_t *instr) {
+static bool dec_rex(byte_t bytes[], int *pos, instr_t *instr) {
   if (bytes[*pos] < 0x40 || bytes[*pos] > 0x4F)
     return false;
 
@@ -77,7 +77,7 @@ bool dec_rex(byte_t bytes[], int *pos, instr_t *instr) {
 /**
  * Checks if next byte is escape opcode (0x0F)
  */
-bool dec_twobyte_opcode(byte_t bytes[], int *pos) {
+static bool dec_twobyte_opcode(byte_t bytes[], int *pos) {
   if (bytes[*pos] == 0x0F) {
     (*pos)++;
     return true;
@@ -91,7 +91,7 @@ bool dec_twobyte_opcode(byte_t bytes[], int *pos) {
  *  REX.b is used as 4th bit
  *  If default_64b is set to false, 32b mnemonics are used unless REX.w is 1
  */
-const char *get_modrm_rm_register(instr_t *instr, bool default_64b) {
+static const char *get_modrm_rm_register(instr_t *instr, bool default_64b) {
   if (instr->modrm.mod == 0b00 && instr->modrm.rm == 0b101) {
     return "rip"; // disp32(%rip)
   }
@@ -104,7 +104,7 @@ const char *get_modrm_rm_register(instr_t *instr, bool default_64b) {
  * Returns register mnemonic from ModRM.reg field
  *  REX.r is used as 4th bit
  */
-const char *get_modrm_reg_register(instr_t *instr, bool default_64b) {
+static const char *get_modrm_reg_register(instr_t *instr, bool default_64b) {
   byte_t enc = instr->modrm.reg | (instr->has_rex && instr->rex.r ? 0b1000 : 0);
   return default_64b ? GPR_64b[enc] :
             (instr->has_rex && instr->rex.w ? GPR_64b[enc] : GPR_32b[enc]);
@@ -114,7 +114,7 @@ const char *get_modrm_reg_register(instr_t *instr, bool default_64b) {
  * Returns register mnemonic from opcode register bits
  *  REX.b is used as 4th bit
  */
-const char *get_opcode_register(instr_t *instr) {
+static const char *get_opcode_register(instr_t *instr) {
   return GPR_64b[(instr->opcode & 0b111) |
             ((instr->has_rex && instr->rex.b) ? 0b1000 : 0)];
 }
@@ -127,16 +127,17 @@ const char *get_opcode_register(instr_t *instr) {
  *  0b01 : disp8
  *  0b10 : disp32
  */
-int get_modrm_disp(instr_t *instr) {
+static int get_modrm_disp(instr_t *instr) {
   switch (instr->modrm.mod) {
     case 0b00: return instr->modrm.rm == 0b101 ? 32 : 0;
     case 0b01: return 8;
     case 0b10: return 32;
-    case 0b11: return 0; // invalid / direct
+    case 0b11: break; // invalid / direct
   }
+  return 0;
 }
 
-void format_mnemonic(instr_t *instr, const char *opcode, const char *format, ...) {
+static void format_mnemonic(instr_t *instr, const char *opcode, const char *format, ...) {
   va_list args;
   va_start(args, format);
   char tmp[128];
@@ -153,7 +154,7 @@ void format_mnemonic(instr_t *instr, const char *opcode, const char *format, ...
  * Decodes single instruction, starting at bytes[0]
  *  return => number of bytes decoded
  */
-int decode_single(instr_t *instr, byte_t bytes[]) {
+static int decode_single(instr_t *instr, byte_t bytes[]) {
   int pos = 0;
 
   // Check REX byte
@@ -554,39 +555,4 @@ void proc_labels(instr_t instr[], int count) {
                 (dest < 0 ? "-" : ""), (dest < 0 ? -dest : dest));
     }
   }
-}
-
-void argv_to_bytes(byte_t bytes[], const char *argv[], int argc) {
-  for (int i = 1; i < argc; i++) {
-    bytes[i - 1] = (byte_t) strtol(argv[i], NULL, 16);
-  }
-}
-
-int main(int argc, const char *argv[]) {
-  byte_t bytes[argc - 1];
-  argv_to_bytes(bytes, argv, argc);
-
-  instr_t list[2048];
-
-  // Decode all bblocks
-  int count = decode(list, bytes, argc - 1);
-
-  // Xrefs
-  proc_labels(list, count);
-
-  // Print
-  for (int i = 0; i < count; i++) {
-    if (list[i].label[0] != '\0')
-      printf(".%s:\n", list[i].label);
-
-    printf("   0x%x:   %-20s    %-5s %-20s %s%s\n",
-            list[i].addr,
-            list[i].hex_bytes,
-            list[i].mnemo_opcode,
-            list[i].mnemo_operand,
-            list[i].mnemo_notes[0] != '\0' ? "# " : "",
-            list[i].mnemo_notes);
-  }
-
-  return 0;
 }

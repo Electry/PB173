@@ -95,3 +95,7 @@ typedef struct {
   bool has_modrm;
   modrm_byte_t modrm;
 } instr_t;
+
+int decode(instr_t instr[], byte_t bytes[], int len);
+void proc_labels(instr_t instr[], int count);
+
