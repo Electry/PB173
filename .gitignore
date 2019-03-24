@@ -1,0 +1,7 @@
+*.o
+
+decode
+cfg
+
+test*
+tmp*
