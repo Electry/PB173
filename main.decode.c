@@ -25,10 +25,10 @@ int main(int argc, const char *argv[]) {
   }
 
   // Decode all bblocks
-  int count = decode(list, bytes, size);
+  int count = decode(list, bytes, 0, size);
 
   // Xrefs
-  proc_labels(list, count);
+  proc_flow_labels(list, count);
 
   // Print
   for (int i = 0; i < count; i++) {

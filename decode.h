@@ -1,3 +1,5 @@
+#ifndef DECODE_H
+#define DECODE_H
 
 #define MSG_UNK_OPCODE "unknown instruction"
 
@@ -91,11 +93,12 @@ typedef struct {
 
   bool has_rex;
   rex_byte_t rex;
-  
+
   bool has_modrm;
   modrm_byte_t modrm;
 } instr_t;
 
-int decode(instr_t instr[], byte_t bytes[], int len);
-void proc_labels(instr_t instr[], int count);
+int decode(instr_t instr[], byte_t bytes[], int vaddr, int len);
+void proc_flow_labels(instr_t instr[], int count);
 
+#endif

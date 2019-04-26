@@ -3,5 +3,8 @@
 decode
 cfg
 
+decode.elf
+cfg.elf
+
 test*
 tmp*

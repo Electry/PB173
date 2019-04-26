@@ -436,7 +436,7 @@ UNK_OPCODE:
  * Decodes all instructions
  *  return => num of instr. decoded
  */
-int decode(instr_t instr[], byte_t bytes[], int len) {
+int decode(instr_t instr[], byte_t bytes[], int vaddr, int len) {
   int count = 0, pos = 0;
   bool label_pending = true;
   int label_count = 0;
@@ -446,9 +446,9 @@ int decode(instr_t instr[], byte_t bytes[], int len) {
     memset(&instr[count], 0, sizeof(instr_t));
 
     // Decode single instr.
-    instr[count].addr = pos; // store begin rel. addr
+    instr[count].addr = vaddr + pos; // store begin rel. addr
     pos += decode_single(&instr[count], &bytes[pos]); // decode
-    instr[count].len = pos - instr[count].addr; // store byte size
+    instr[count].len = (vaddr + pos) - instr[count].addr; // store byte size
 
     // Set hex bytes string
     int str_pos = 0;
@@ -493,11 +493,11 @@ int decode(instr_t instr[], byte_t bytes[], int len) {
   return count;
 }
 
-void proc_labels(instr_t instr[], int count) {
+void proc_flow_labels(instr_t instr[], int count) {
   int new_label_count = 0;
 
   for (int i = 0; i < count; i++) {
-    bool is_jump = false, done = false;
+    bool done = false;
     long long dest = 0;
 
     // Should print note?
@@ -509,9 +509,8 @@ void proc_labels(instr_t instr[], int count) {
         case OP_JMP_EB: // rel8off
         case OP_JMP_E9: // rel32off
         case OP_CALL:
-          is_jump = true; // print dest. label
           dest = instr[i].addr + instr[i].len + instr[i].value;
-          break;
+          goto PROC_JUMP;
         case OP_PUSH_68:
         case OP_PUSH_6A:
         case OP_XOR:
@@ -528,16 +527,14 @@ void proc_labels(instr_t instr[], int count) {
         case OP_EXT_JB:
         case OP_EXT_JE:
         case OP_EXT_JNE: // rel32off
-          is_jump = true;
           dest = instr[i].addr + instr[i].len + instr[i].value;
-          break;
+          goto PROC_JUMP;
       }
     }
 
-    // Only proc. jumps
-    if (!is_jump)
-      continue;
+    continue;
 
+PROC_JUMP: ;
     // Print dest. label to instr. note
     bool search_back = dest < instr[i].addr;
     for (int j = (search_back ? 0 : i); j < (search_back ? i : count); j++) {

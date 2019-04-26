@@ -5,13 +5,7 @@
 
 #include "decode.h"
 
-static void argv_to_bytes(byte_t bytes[], const char *argv[], int argc) {
-  for (int i = 1; i < argc; i++) {
-    bytes[i - 1] = (byte_t) strtol(argv[i], NULL, 16);
-  }
-}
-
-static int print_bblocks(instr_t list[], int count) {
+int print_bblocks(instr_t list[], int count) {
   int bblock_count = 0;
 
   for (int i = 0; i < count; i++) {
@@ -42,7 +36,7 @@ static int print_bblocks(instr_t list[], int count) {
   return bblock_count;
 }
 
-static void print_arrows(instr_t list[], int count) {
+void print_arrows(instr_t list[], int count) {
   int prev_bblock_i = 0;
 
   for (int i = 0; i < count; i++) {
@@ -87,32 +81,4 @@ PRINT_JUMP_ARROW:
       printf("  %s -> %s\n", list[prev_bblock_i].label, list[i + 1].label);
     }
   }
-}
-
-int main(int argc, const char *argv[]) {
-  byte_t bytes[2048]; // 2kB max
-  instr_t list[2048];
-  size_t size = 0;
-
-  if (argc > 1) { // argv
-      argv_to_bytes(bytes, argv, argc);
-      size = argc - 1;
-  } else { // stdin
-      freopen(NULL, "rb", stdin);
-      size = fread(bytes, sizeof(byte_t), 2048, stdin);
-  }
-
-  // Decode all bblocks
-  int count = decode(list, bytes, size);
-
-  // Xrefs
-  proc_labels(list, count);
-
-  // Print graph
-  printf("digraph G {\n");
-  print_bblocks(list, count);
-  print_arrows(list, count);
-  printf("}\n");
-
-  return 0;
 }
