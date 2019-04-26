@@ -452,10 +452,10 @@ int decode(instr_t instr[], byte_t bytes[], int vaddr, int len) {
 
     // Set hex bytes string
     int str_pos = 0;
-    for (int i = instr[count].addr; i < pos; i++) {
+    for (int i = instr[count].addr; i < vaddr + pos; i++) {
       str_pos += snprintf(instr[count].hex_bytes + str_pos,
                           HEX_BYTES_LEN - str_pos, "%s%02x",
-                          (i > instr[count].addr ? " " : ""), bytes[i]);
+                          (i > instr[count].addr ? " " : ""), bytes[i - vaddr]);
     }
 
     // Set label to new block
