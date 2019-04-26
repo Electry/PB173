@@ -1,6 +1,6 @@
 import subprocess
 
-__BIN = "~/pb173/ass1/decode"
+__BIN = "~/pb173/decode"
 
 __TESTS_SINGLE_INSTR_BASIC = [
     #
@@ -171,7 +171,7 @@ __TESTS_SINGLE_INSTR_BASIC = [
     # ADD RAX imm32
     ("48 05 00 00 00 00",   r"add $0x0, %rax"),
     ("48 05 12 34 56 78",   r"add $0x78563412, %rax"),
-    # MUL reg/mem64 direct     mod = 0b11 
+    # MUL reg/mem64 direct     mod = 0b11
     ("F7 E0",               r"mul %eax"),
     ("F7 E2",               r"mul %edx"),
     ("48 F7 E0",            r"mul %rax"),
@@ -191,7 +191,7 @@ __TESTS_SINGLE_INSTR_BASIC = [
     # CMP RAX imm32
     ("48 3D 00 00 00 00",   r"cmp $0x0, %rax"),
     ("48 3D 12 34 56 78",   r"cmp $0x78563412, %rax"),
-    # CMP reg/mem64,reg64 direct     mod = 0b11 
+    # CMP reg/mem64,reg64 direct     mod = 0b11
     ("39 C0",               r"cmp %eax, %eax"),
     ("39 C2",               r"cmp %eax, %edx"),
     ("39 C8",               r"cmp %ecx, %eax"),
@@ -220,7 +220,7 @@ __TESTS_SINGLE_INSTR_BASIC = [
     #
     # MOV
     #
-    # reg/mem64,reg64     direct     mod = 0b11 
+    # reg/mem64,reg64     direct     mod = 0b11
     ("89 C0",               r"mov %eax, %eax"),
     ("89 C2",               r"mov %eax, %edx"),
     ("89 C8",               r"mov %ecx, %eax"),
@@ -247,7 +247,7 @@ __TESTS_SINGLE_INSTR_BASIC = [
     ("48 89 48 1A",         r"mov %rcx, 0x1a(%rax)"),
     ("48 89 82 23 01 00 00",r"mov %rax, 0x123(%rdx)"),
     ("49 89 82 23 01 00 00",r"mov %rax, 0x123(%r10)"), # rex.b
-    # reg64,reg/mem64    direct      mod = 0b11 
+    # reg64,reg/mem64    direct      mod = 0b11
     ("8B C0",               r"mov %eax, %eax"),
     ("8B C2",               r"mov %edx, %eax"),
     ("8B C8",               r"mov %eax, %ecx"),
