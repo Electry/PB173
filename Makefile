@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall
 
-all: decode cfg decode.elf cfg.elf
+all: decode cfg decode.elf cfg.elf symtab
 default: decode
 
 
@@ -26,6 +26,9 @@ decode.elf: decode.o elf.o
 
 cfg.elf: decode.o cfg.o elf.o
 	$(CC) $(CFLAGS) main.cfg.elf.c decode.o cfg.o elf.o -o cfg.elf
+
+symtab: elf.o
+	$(CC) $(CFLAGS) main.symtab.c elf.o -o symtab
 
 
 clean:

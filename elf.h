@@ -13,14 +13,27 @@
 
 #include "decode.h"
 
+#define MAX_SECTIONS 64
+#define MAX_SYMBOLS 512
 
 typedef struct {
-  uintptr_t addr;
+  uintptr_t elf_offset;
+  uintptr_t vaddr;
   int size;
   char *name;
 } section_t;
 
-int get_elf_info(byte_t *bin, uintptr_t *entry, uintptr_t *text_offset, uintptr_t *vaddr, int *size, section_t sections[], int *n_sections);
+typedef struct {
+  uintptr_t value;
+  int size;
+  byte_t binding;
+  char *name;
+  uint16_t shndx;
+} symbol_t;
+
+int get_elf_sections(byte_t *bin, section_t sections[], int *n_sections);
+int get_elf_symtab(byte_t *bin, section_t sections[], int n_sections, symbol_t symbols[], int *n_symbols);
+int get_elf_info(byte_t *bin, section_t sections[], int n_sections, uintptr_t *entry, uintptr_t *vaddr, uintptr_t *text_offset, int *text_size);
 
 int load_file(const char *path, int *fd, byte_t **bin, int *fsize);
 int close_file(byte_t *bin, int fd, int fsize);

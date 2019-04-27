@@ -11,7 +11,33 @@
 
 #include "elf.h"
 
-int get_elf_info(byte_t *bin, uintptr_t *entry, uintptr_t *text_offset, uintptr_t *vaddr, int *size, section_t sections[], int *n_sections) {
+int get_elf_sections(byte_t *bin, section_t sections[], int *n_sections) {
+  Elf64_Ehdr *ehdr = (Elf64_Ehdr *)bin;
+
+  // Get section header of "section name" string table
+  Elf64_Shdr *shdr_section_name_table = NULL;
+  if (ehdr->e_shstrndx != SHN_XINDEX) {
+    shdr_section_name_table = (Elf64_Shdr *)(bin + ehdr->e_shoff + (ehdr->e_shstrndx * ehdr->e_shentsize));
+  }
+  else {
+    int ndx = ((Elf64_Shdr *)(bin + ehdr->e_shoff))->sh_link;
+    shdr_section_name_table = (Elf64_Shdr *)(bin + ehdr->e_shoff + (ndx * ehdr->e_shentsize));
+  }
+
+  // Find .text section among all sections
+  *n_sections = ehdr->e_shnum;
+  for (int i = 0; i < ehdr->e_shnum; i++) {
+    Elf64_Shdr *shdr = (Elf64_Shdr *)(bin + ehdr->e_shoff + (i * ehdr->e_shentsize));
+    sections[i].vaddr = shdr->sh_addr;
+    sections[i].elf_offset = shdr->sh_offset;
+    sections[i].size = shdr->sh_size;
+    sections[i].name = (char *)(bin + shdr_section_name_table->sh_offset + shdr->sh_name);
+  }
+
+  return 0;
+}
+
+int get_elf_info(byte_t *bin, section_t sections[], int n_sections, uintptr_t *entry, uintptr_t *vaddr, uintptr_t *text_offset, int *text_size) {
   Elf64_Ehdr *ehdr = (Elf64_Ehdr *)bin;
   *entry = ehdr->e_entry;
 
@@ -27,39 +53,54 @@ int get_elf_info(byte_t *bin, uintptr_t *entry, uintptr_t *text_offset, uintptr_
   }
   */
 
-  // Get section header of "section name" string table
-  Elf64_Shdr *shdr_section_name_table = NULL;
-  if (ehdr->e_shstrndx != SHN_XINDEX) {
-    shdr_section_name_table = (Elf64_Shdr *)(bin + ehdr->e_shoff + (ehdr->e_shstrndx * ehdr->e_shentsize));
-  }
-  else {
-    int ndx = ((Elf64_Shdr *)(bin + ehdr->e_shoff))->sh_link;
-    shdr_section_name_table = (Elf64_Shdr *)(bin + ehdr->e_shoff + (ndx * ehdr->e_shentsize));
-  }
-
-  // Find .text section among all sections
-  Elf64_Shdr *shdr_text = NULL;
-  *n_sections = ehdr->e_shnum;
-  for (int i = 0; i < ehdr->e_shnum; i++) {
-    Elf64_Shdr *shdr = (Elf64_Shdr *)(bin + ehdr->e_shoff + (i * ehdr->e_shentsize));
-    sections[i].addr = shdr->sh_addr;
-    sections[i].size = shdr->sh_size;
-    sections[i].name = (char *)(bin + shdr_section_name_table->sh_offset + shdr->sh_name);
-
+  for (int i = 0; i < n_sections; i++) {
     if (!strncmp(sections[i].name, ".text", 5)) {
-      // Found .text
-      shdr_text = shdr;
+      *vaddr = sections[i].vaddr;
+      *text_offset = sections[i].elf_offset;
+      *text_size = sections[i].size;
+      return 0;
     }
   }
 
-  if (shdr_text == NULL) {
-    printf("Could not find .text section!\n");
+  printf("Could not find .text section!\n");
+  return 1;
+}
+
+int get_elf_symtab(byte_t *bin, section_t sections[], int n_sections, symbol_t symbols[], int *n_symbols) {
+  section_t *s_symtab = NULL, *s_strtab = NULL;
+  for (int i = 0; i < n_sections; i++) {
+    if (!strncmp(sections[i].name, ".symtab", 5)) {
+      s_symtab = &sections[i];
+    }
+    else if (!strncmp(sections[i].name, ".strtab", 5)) {
+      s_strtab = &sections[i];
+    }
+  }
+
+  if (s_symtab == NULL) {
+    printf("Could not find .symtab section!\n");
+    return 1;
+  }
+  if (s_strtab == NULL) {
+    printf("Could not find .strtab section!\n");
     return 1;
   }
 
-  *vaddr = shdr_text->sh_addr;
-  *size = shdr_text->sh_size;
-  *text_offset = shdr_text->sh_offset;
+  *n_symbols = 0;
+  for (int i = 0; i * sizeof(Elf64_Sym) < s_symtab->size; i++) {
+    Elf64_Sym *sym = (Elf64_Sym *)(bin + s_symtab->elf_offset + (i * sizeof(Elf64_Sym)));
+    if (ELF64_ST_TYPE(sym->st_info) == STT_FUNC
+        && sym->st_name != 0) {
+      symbols[*n_symbols].value = sym->st_value;
+      symbols[*n_symbols].size = sym->st_size;
+      symbols[*n_symbols].binding = ELF64_ST_BIND(sym->st_info);
+      symbols[*n_symbols].name = (char *)(bin + s_strtab->elf_offset + sym->st_name);
+      symbols[*n_symbols].shndx = sym->st_shndx;
+
+      (*n_symbols)++;
+    }
+  }
+
   return 0;
 }
 
@@ -106,9 +147,9 @@ void proc_section_labels(instr_t instr[], int count, section_t sections[], int n
             bool done = false;
 
             for (int j = 0; j < n_sections; j++) {
-              if (dest >= sections[j].addr && dest < sections[j].addr + sections[j].size) {
+              if (dest >= sections[j].vaddr && dest < sections[j].vaddr + sections[j].size) {
                 snprintf(instr[i].mnemo_notes, MNEMO_NOTES_LEN,
-                    "%s + 0x%llx", sections[j].name, dest - sections[j].addr);
+                    "%s + 0x%llx", sections[j].name, dest - sections[j].vaddr);
                 done = true;
                 break;
               }

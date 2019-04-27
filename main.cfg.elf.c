@@ -19,7 +19,7 @@ int main(int argc, const char *argv[]) {
     return 1;
   }
 
-  section_t sections[64];
+  section_t sections[MAX_SECTIONS];
   uintptr_t entry, offset, vaddr;
   int size, n_sections;
   bool is_elf = false;
@@ -27,7 +27,8 @@ int main(int argc, const char *argv[]) {
   // Is .elf?
   if (bin[0] == 0x7F && bin[1] == 'E' && bin[2] == 'L' && bin[3] == 'F') {
     is_elf = true;
-    if (get_elf_info(bin, &entry, &offset, &vaddr, &size, sections, &n_sections)) {
+    if (get_elf_sections(bin, sections, &n_sections)
+        || get_elf_info(bin, sections, n_sections, &entry, &vaddr, &offset, &size)) {
       goto ERR_CLOSE_FILE;
     }
   }
