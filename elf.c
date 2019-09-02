@@ -89,12 +89,13 @@ int get_elf_symtab(byte_t *bin, section_t sections[], int n_sections, symbol_t s
   *n_symbols = 0;
   for (int i = 0; i * sizeof(Elf64_Sym) < s_symtab->size; i++) {
     Elf64_Sym *sym = (Elf64_Sym *)(bin + s_symtab->elf_offset + (i * sizeof(Elf64_Sym)));
-    if (ELF64_ST_TYPE(sym->st_info) == STT_FUNC
-        && sym->st_name != 0) {
+    char *name = (char *)(bin + s_strtab->elf_offset + sym->st_name);
+    if (sym->st_name != 0 && name[0] != '\0') {
       symbols[*n_symbols].value = sym->st_value;
       symbols[*n_symbols].size = sym->st_size;
+      symbols[*n_symbols].type = ELF64_ST_TYPE(sym->st_info);
       symbols[*n_symbols].binding = ELF64_ST_BIND(sym->st_info);
-      symbols[*n_symbols].name = (char *)(bin + s_strtab->elf_offset + sym->st_name);
+      symbols[*n_symbols].name = name;
       symbols[*n_symbols].shndx = sym->st_shndx;
 
       (*n_symbols)++;
@@ -160,6 +161,18 @@ void proc_section_labels(instr_t instr[], int count, section_t sections[], int n
             }
           }
           break;
+      }
+    }
+  }
+}
+
+void proc_symtab_labels(instr_t instr[], int count, symbol_t symbols[], int n_symbols) {
+  for (int i = 0; i < count; i++) {
+    for (int j = 0; j < n_symbols; j++) {
+      // Match?
+      if (instr[i].addr == symbols[j].value) {
+        snprintf(instr[i].label, LABEL_LEN, "%s", symbols[j].name);
+        break;
       }
     }
   }

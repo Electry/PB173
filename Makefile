@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall
 
-all: decode cfg decode.elf cfg.elf symtab
+all: decode cfg decode.elf cfg.elf symtab recfun
 default: decode
 
 
@@ -30,6 +30,9 @@ cfg.elf: decode.o cfg.o elf.o
 symtab: elf.o
 	$(CC) $(CFLAGS) main.symtab.c elf.o -o symtab
 
+recfun: decode.o elf.o
+	$(CC) $(CFLAGS) main.recfun.c decode.o elf.o -o recfun
+
 
 clean:
-	rm decode cfg decode.elf cfg.elf *.o
+	rm decode cfg decode.elf cfg.elf symtab recfun *.o

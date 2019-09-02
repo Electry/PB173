@@ -15,7 +15,7 @@ int print_bblocks(instr_t list[], int count) {
       bblock_count++;
       printf("  %s [width=4 shape=rectangle fontname=Monospace fontsize=11 label=\"",
               list[i].label); // Opening
-      printf(".%s:\\l", list[i].label); // Label
+      printf("%s:\\l", list[i].label); // Label
     }
 
     char addr_buf[16];
@@ -53,11 +53,10 @@ void print_arrows(instr_t list[], int count) {
         case OP_JMP_EB:
         case OP_CALL:
 PRINT_JUMP_ARROW:
-          if (list[i].mnemo_notes[0] == '.') {
-            // TODO: Don't use formatted mnemo for this
+          if (list[i].mnemo_cf_label[0] != '\0') {
             printf("  %s -> %s [fontname=Monospace fontsize=10 label=\"%s\\l\"]\n",
                     list[prev_bblock_i].label,
-                    &list[i].mnemo_notes[1],
+                    list[i].mnemo_cf_label,
                     list[i].mnemo_opcode);
           }
           break;

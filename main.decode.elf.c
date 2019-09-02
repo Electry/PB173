@@ -49,7 +49,7 @@ int main(int argc, const char *argv[]) {
   }
 
   // Decode all bblocks
-  int count = decode(list, bin + offset, vaddr, size);
+  int count = decode(list, 0, bin + offset, vaddr, size, DECODE_LINEAR);
 
   // Xrefs
   proc_flow_labels(list, count);
@@ -59,7 +59,7 @@ int main(int argc, const char *argv[]) {
   // Print
   for (int i = 0; i < count; i++) {
     if (list[i].label[0] != '\0')
-    printf(".%s:\n", list[i].label);
+    printf("%s:\n", list[i].label);
 
     char addr_buf[16];
     snprintf(addr_buf, 16, "0x%x", list[i].addr);

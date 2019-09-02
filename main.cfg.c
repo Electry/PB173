@@ -26,7 +26,7 @@ int main(int argc, const char *argv[]) {
   }
 
   // Decode all bblocks
-  int count = decode(list, bytes, 0, size);
+  int count = decode(list, 0, bytes, 0, size, DECODE_LINEAR);
 
   // Xrefs
   proc_flow_labels(list, count);

@@ -29,6 +29,7 @@ typedef struct {
   byte_t binding;
   char *name;
   uint16_t shndx;
+  byte_t type;
 } symbol_t;
 
 int get_elf_sections(byte_t *bin, section_t sections[], int *n_sections);
@@ -39,5 +40,6 @@ int load_file(const char *path, int *fd, byte_t **bin, int *fsize);
 int close_file(byte_t *bin, int fd, int fsize);
 
 void proc_section_labels(instr_t instr[], int count, section_t sections[], int n_sections);
+void proc_symtab_labels(instr_t instr[], int count, symbol_t symbols[], int n_symbols);
 
 #endif

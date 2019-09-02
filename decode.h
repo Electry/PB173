@@ -5,7 +5,8 @@
 
 #define MNEMO_OPCODE_LEN   8
 #define MNEMO_OPERAND_LEN  32
-#define MNEMO_NOTES_LEN    32
+#define MNEMO_NOTES_LEN    48
+#define MNEMO_CF_LABEL_LEN 32
 
 #define HEX_BYTES_LEN      32
 #define LABEL_LEN          32
@@ -83,6 +84,7 @@ typedef struct {
   char mnemo_opcode[MNEMO_OPCODE_LEN];
   char mnemo_operand[MNEMO_OPERAND_LEN];
   char mnemo_notes[MNEMO_NOTES_LEN];
+  char mnemo_cf_label[MNEMO_CF_LABEL_LEN];
 
   char hex_bytes[HEX_BYTES_LEN];
   char label[LABEL_LEN];
@@ -98,7 +100,12 @@ typedef struct {
   modrm_byte_t modrm;
 } instr_t;
 
-int decode(instr_t instr[], byte_t bytes[], int vaddr, int len);
+typedef enum {
+  DECODE_LINEAR,
+  DECODE_RECURSIVE
+} decode_mode_t;
+
+int decode(instr_t instr[], int instr_pos, byte_t bytes[], int vaddr, int len, decode_mode_t mode);
 void proc_flow_labels(instr_t instr[], int count);
 
 #endif

@@ -433,16 +433,36 @@ UNK_OPCODE:
 }
 
 /**
- * Decodes all instructions
- *  return => num of instr. decoded
+ * Returns instr_t from array where addr is within instr.addr - instr.addr+len range
+ *  NULL if not found
  */
-int decode(instr_t instr[], byte_t bytes[], int vaddr, int len) {
-  int count = 0, pos = 0;
+instr_t *get_instr_by_addr(instr_t instr[], int count, long long addr) {
+  for (int j = 0; j < count; j++) {
+    if (instr[j].addr <= addr && instr[j].addr + instr[j].len > addr) { // found
+      return &instr[j];
+    }
+  }
+
+  return NULL;
+}
+
+/**
+ * Decodes all instructions
+ *  return => total num. of decoded instr. in instr[] array
+ */
+int decode(instr_t instr[], int instr_pos, byte_t bytes[], int vaddr, int len, decode_mode_t mode) {
+  int count = instr_pos, pos = 0;
   bool label_pending = true;
   int label_count = 0;
 
+  //printf("decode %d addr 0x%X\n", count, vaddr);
+
   // Decode all, one by one
   while (pos < len) {
+    // Do not decode already decoded instr/BB.
+    if (get_instr_by_addr(instr, count, vaddr + pos))
+      return count;
+ 
     memset(&instr[count], 0, sizeof(instr_t));
 
     // Decode single instr.
@@ -460,7 +480,7 @@ int decode(instr_t instr[], byte_t bytes[], int vaddr, int len) {
 
     // Set label to new block
     if (label_pending) {
-      snprintf(instr[count].label, LABEL_LEN, "L%d", label_count++);
+      snprintf(instr[count].label, LABEL_LEN, ".L%d", label_count++);
       label_pending = false;
     }
 
@@ -472,8 +492,27 @@ int decode(instr_t instr[], byte_t bytes[], int vaddr, int len) {
         case OP_JNE:
         case OP_JMP_EB:
         case OP_JMP_E9:
+          if (mode == DECODE_RECURSIVE) {
+            // Recursively decode jump case
+            long long dest = instr[count].addr + instr[count].len + instr[count].value;
+            count = decode(instr, count + 1, &bytes[dest - vaddr], dest, len-pos, mode) - 1;
+          }
+          // finish decoding fall-through case (incl. JMP, meh)
+          label_pending = true;
+          break;
+        case OP_CALL:
+          if (mode == DECODE_RECURSIVE) {
+            // Recursively decode call
+            long long dest = instr[count].addr + instr[count].len + instr[count].value;
+            count = decode(instr, count + 1, &bytes[dest - vaddr], dest, len-pos, mode) - 1;
+          }
+          // finish decoding current block (but don't create new label/bb)
+          break;
         case OP_RET_C2:
         case OP_RET_C3:
+          if (mode == DECODE_RECURSIVE) {
+            return count + 1; // Nothing else to do
+          }
           label_pending = true;
           break;
       }
@@ -482,6 +521,12 @@ int decode(instr_t instr[], byte_t bytes[], int vaddr, int len) {
         case OP_EXT_JB:
         case OP_EXT_JE:
         case OP_EXT_JNE:
+          if (mode == DECODE_RECURSIVE) {
+            // Recursively decode jump case
+            long long dest = instr[count].addr + instr[count].len + instr[count].value;
+            count = decode(instr, count + 1, &bytes[dest - vaddr], dest, len-pos, mode) - 1;
+          }
+          // finish decoding fall-through case
           label_pending = true;
           break;
       }
@@ -497,7 +542,6 @@ void proc_flow_labels(instr_t instr[], int count) {
   int new_label_count = 0;
 
   for (int i = 0; i < count; i++) {
-    bool done = false;
     long long dest = 0;
 
     // Should print note?
@@ -535,22 +579,22 @@ void proc_flow_labels(instr_t instr[], int count) {
     continue;
 
 PROC_JUMP: ;
-    // Print dest. label to instr. note
-    bool search_back = dest < instr[i].addr;
-    for (int j = (search_back ? 0 : i); j < (search_back ? i : count); j++) {
-      if (instr[j].addr == dest) { // find dest. instr.
-        if (instr[j].label[0] == '\0') // no label?
-          snprintf(instr[j].label, LABEL_LEN, "LL%d", new_label_count++);
+    // Find dest. instr.
+    instr_t *dest_instr = get_instr_by_addr(instr, count, dest);
 
-        snprintf(instr[i].mnemo_notes, MNEMO_NOTES_LEN, ".%s", instr[j].label);
-        done = true;
-        break;
-      }
-    }
-
-    if (!done) { // out of scope / inside of instr.
-      snprintf(instr[i].mnemo_notes, MNEMO_NOTES_LEN, "%s0x%llx",
+    // Invalid jump destination?
+    if (dest_instr == NULL || dest_instr->addr != dest) {
+      snprintf(instr[i].mnemo_notes, MNEMO_NOTES_LEN, "[broken] %s0x%llx",
                 (dest < 0 ? "-" : ""), (dest < 0 ? -dest : dest));
+      continue;
     }
+
+    // Create label for dest instr, if it hasn't got one yet
+    if (dest_instr->label[0] == '\0')
+      snprintf(dest_instr->label, LABEL_LEN, ".LL%d", new_label_count++);
+
+    // Print # dest label
+    snprintf(instr[i].mnemo_notes, MNEMO_NOTES_LEN, "%s", dest_instr->label);
+    snprintf(instr[i].mnemo_cf_label, MNEMO_CF_LABEL_LEN, "%s", dest_instr->label);
   }
 }
