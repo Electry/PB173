@@ -3,20 +3,25 @@ import subprocess, os
 __BIN = os.path.dirname(__file__) + "/../../recfun"
 
 __TESTS = [
-    ("/hw5/test1.s", "/hw5/test1.txt")
+    ("/hw5/test1.s", "/hw5/test1.txt", ""),
+    ("/hw5/test2.s", "/hw5/test2.txt", "-s")
 ]
 
-def hex2elf(hexfile):
+def hex2elf(hexfile, gcc_arg):
     out = hexfile.replace(".s", ".out")
 
-    subprocess.run(["gcc", hexfile, "-o", out, "-nostdlib"])
+    arg = ["gcc", hexfile, "-o", out, "-nostdlib"]
+    if len(gcc_arg) > 0:
+        arg.append(gcc_arg)
+
+    subprocess.run(arg)
     if os.path.isfile(out):
         return out
 
 def run():
-    for (path, txt) in __TESTS:
+    for (path, txt, gcc_arg) in __TESTS:
         # Cvt
-        test_file = hex2elf(os.path.dirname(__file__) + path)
+        test_file = hex2elf(os.path.dirname(__file__) + path, gcc_arg)
 
         f = open(os.path.dirname(__file__) + txt, "r")
         expected = ''.join(map(str.strip, f.readlines()))

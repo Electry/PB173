@@ -1,0 +1,53 @@
+Could not find .symtab section!
+sub_244:
+   0x244:   48 8b 3d bd 0d 20 00    mov   0x200dbd(%rip), %rdi # .data + 0x8
+   0x24b:   48 89 fb                mov   %rdi, %rbx
+   0x24e:   48 8b 1d af 0d 20 00    mov   0x200daf(%rip), %rbx # .data + 0x4
+   0x255:   48 8b 0d ac 0d 20 00    mov   0x200dac(%rip), %rcx # .data + 0x8
+sub_244_25c:
+   0x25c:   48 39 c7                cmp   %rax, %rdi
+   0x25f:   74 12                   je    $rip+0x12            # sub_244_273
+sub_244_261:
+   0x261:   48 83                   unknown opcode
+   0x263:   c7                      unknown opcode
+   0x264:   01                      unknown opcode
+   0x265:   48 89 da                mov   %rbx, %rdx
+   0x268:   48 01                   unknown opcode
+   0x26a:   ca                      unknown opcode
+   0x26b:   48 89 cb                mov   %rcx, %rbx
+   0x26e:   48 89 d1                mov   %rdx, %rcx
+   0x271:   eb e9                   jmp   $rip-0x17            # sub_244_25c
+sub_244_273:
+   0x273:   48 89 d8                mov   %rbx, %rax
+   0x276:   c3                      ret
+sub_277:
+   0x277:   55                      push  %rbp
+   0x278:   48 8b 05 81 0d 20 00    mov   0x200d81(%rip), %rax # .data + 0x0
+   0x27f:   e8 c0 ff ff ff          call  $rip-0x40            # sub_244
+   0x284:   48 8b 05 75 0d 20 00    mov   0x200d75(%rip), %rax # .data + 0x0
+   0x28b:   e8 01 00 00 00          call  $rip+0x1             # sub_291
+   0x290:   5d                      pop   %rbp
+sub_291:
+   0x291:   53                      push  %rbx
+   0x292:   48 39 05 6f 0d 20 00    cmp   %rax, 0x200d6f(%rip)
+   0x299:   74 30                   je    $rip+0x30            # sub_291_2cb
+sub_291_29b:
+   0x29b:   48 89 c3                mov   %rax, %rbx
+   0x29e:   48 8b 35 6b 0d 20 00    mov   0x200d6b(%rip), %rsi # .data + 0x10
+   0x2a5:   48 01                   unknown opcode
+   0x2a7:   f0                      unknown opcode
+   0x2a8:   e8 e4 ff ff ff          call  $rip-0x1c            # sub_291
+   0x2ad:   48 89 d9                mov   %rbx, %rcx
+   0x2b0:   48 89 c3                mov   %rax, %rbx
+   0x2b3:   48 89 c8                mov   %rcx, %rax
+   0x2b6:   48 8b 35 53 0d 20 00    mov   0x200d53(%rip), %rsi # .data + 0x10
+   0x2bd:   48 01                   unknown opcode
+   0x2bf:   f0                      unknown opcode
+   0x2c0:   48 01                   unknown opcode
+   0x2c2:   f0                      unknown opcode
+   0x2c3:   e8 c9 ff ff ff          call  $rip-0x37            # sub_291
+   0x2c8:   48 01                   unknown opcode
+   0x2ca:   d8                      unknown opcode
+sub_291_2cb:
+   0x2cb:   5b                      pop   %rbx
+   0x2cc:   c3                      ret
