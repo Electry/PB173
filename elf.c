@@ -79,11 +79,13 @@ int get_elf_symtab(byte_t *bin, section_t sections[], int n_sections, symbol_t s
 
   if (s_symtab == NULL) {
     printf("Could not find .symtab section!\n");
-    return 1;
+    *n_symbols = 0;
+    return 0;
   }
   if (s_strtab == NULL) {
     printf("Could not find .strtab section!\n");
-    return 1;
+    *n_symbols = 0;
+    return 0;
   }
 
   *n_symbols = 0;
@@ -169,9 +171,17 @@ void proc_section_labels(instr_t instr[], int count, section_t sections[], int n
 void proc_symtab_labels(instr_t instr[], int count, symbol_t symbols[], int n_symbols) {
   for (int i = 0; i < count; i++) {
     for (int j = 0; j < n_symbols; j++) {
-      // Match?
+      // Entrypoint match?
       if (instr[i].addr == symbols[j].value) {
         snprintf(instr[i].label, LABEL_LEN, "%s", symbols[j].name);
+        break;
+      }
+
+      // Rename all unnamed bblocks
+      if (instr[i].label[0] != '\0'
+          && instr[i].sub_addr == symbols[j].value
+          && !strncmp(instr[i].label, "sub_", 4)) {
+        snprintf(instr[i].label, LABEL_LEN, "%s_%x", symbols[j].name, instr[i].addr);
         break;
       }
     }

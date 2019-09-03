@@ -88,6 +88,7 @@ typedef struct {
 
   char hex_bytes[HEX_BYTES_LEN];
   char label[LABEL_LEN];
+  unsigned int sub_addr;
 
   bool has_ext_opcode;
   byte_t opcode;
@@ -105,7 +106,7 @@ typedef enum {
   DECODE_RECURSIVE
 } decode_mode_t;
 
-int decode(instr_t instr[], int instr_pos, byte_t bytes[], int vaddr, int len, decode_mode_t mode);
+int decode(instr_t instr[], int instr_pos, byte_t bytes[], unsigned int vaddr, int len, decode_mode_t mode, unsigned int sub_addr);
 void proc_flow_labels(instr_t instr[], int count);
 
 #endif

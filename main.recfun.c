@@ -52,7 +52,7 @@ int main(int argc, const char *argv[]) {
   }
 
   // Decode all bblocks
-  int count = decode(list, 0, bin + offset + (entry - vaddr), entry, size, DECODE_RECURSIVE);
+  int count = decode(list, 0, bin + offset + (entry - vaddr), entry, size, DECODE_RECURSIVE, 0);
 
   // Sort by vaddr
   //printf("Total count = %d\n", count);

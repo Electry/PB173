@@ -6,7 +6,7 @@ fibonacci:
 .fi_loop:
    0x25c:   48 39 c7                cmp   %rax, %rdi
    0x25f:   74 12                   je    $rip+0x12            # .fi_out
-.L1:
+fibonacci_261:
    0x261:   48 83                   unknown opcode
    0x263:   c7                      unknown opcode
    0x264:   01                      unknown opcode
@@ -30,7 +30,7 @@ fibonacci_recursive:
    0x291:   53                      push  %rbx
    0x292:   48 39 05 6f 0d 20 00    cmp   %rax, 0x200d6f(%rip)
    0x299:   74 30                   je    $rip+0x30            # .fi2_ret
-.L1:
+fibonacci_recursive_29b:
    0x29b:   48 89 c3                mov   %rax, %rbx
    0x29e:   48 8b 35 6b 0d 20 00    mov   0x200d6b(%rip), %rsi # .data + 0x10
    0x2a5:   48 01                   unknown opcode

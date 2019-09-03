@@ -450,12 +450,16 @@ instr_t *get_instr_by_addr(instr_t instr[], int count, long long addr) {
  * Decodes all instructions
  *  return => total num. of decoded instr. in instr[] array
  */
-int decode(instr_t instr[], int instr_pos, byte_t bytes[], int vaddr, int len, decode_mode_t mode) {
+int decode(instr_t instr[], int instr_pos, byte_t bytes[], unsigned int vaddr, int len, decode_mode_t mode, unsigned int sub_addr) {
   int count = instr_pos, pos = 0;
   bool label_pending = true;
-  int label_count = 0;
 
   //printf("decode %d addr 0x%X\n", count, vaddr);
+
+  // Name functions/bblocks
+  if (sub_addr == 0) {
+    sub_addr = vaddr;
+  }
 
   // Decode all, one by one
   while (pos < len) {
@@ -469,6 +473,7 @@ int decode(instr_t instr[], int instr_pos, byte_t bytes[], int vaddr, int len, d
     instr[count].addr = vaddr + pos; // store begin rel. addr
     pos += decode_single(&instr[count], &bytes[pos]); // decode
     instr[count].len = (vaddr + pos) - instr[count].addr; // store byte size
+    instr[count].sub_addr = sub_addr; // store function entry address to which this instr. belongs
 
     // Set hex bytes string
     int str_pos = 0;
@@ -480,7 +485,13 @@ int decode(instr_t instr[], int instr_pos, byte_t bytes[], int vaddr, int len, d
 
     // Set label to new block
     if (label_pending) {
-      snprintf(instr[count].label, LABEL_LEN, ".L%d", label_count++);
+      if (sub_addr == instr[count].addr) {
+        // New entry point
+        snprintf(instr[count].label, LABEL_LEN, "sub_%x", sub_addr);
+      } else {
+        // bblock
+        snprintf(instr[count].label, LABEL_LEN, "sub_%x_%x", sub_addr, instr[count].addr);
+      }
       label_pending = false;
     }
 
@@ -495,16 +506,16 @@ int decode(instr_t instr[], int instr_pos, byte_t bytes[], int vaddr, int len, d
           if (mode == DECODE_RECURSIVE) {
             // Recursively decode jump case
             long long dest = instr[count].addr + instr[count].len + instr[count].value;
-            count = decode(instr, count + 1, &bytes[dest - vaddr], dest, len-pos, mode) - 1;
+            count = decode(instr, count + 1, &bytes[dest - vaddr], dest, len-pos, mode, sub_addr) - 1;
           }
           // finish decoding fall-through case (incl. JMP, meh)
           label_pending = true;
           break;
         case OP_CALL:
           if (mode == DECODE_RECURSIVE) {
-            // Recursively decode call
+            // Recursively decode call, reset sub_addr
             long long dest = instr[count].addr + instr[count].len + instr[count].value;
-            count = decode(instr, count + 1, &bytes[dest - vaddr], dest, len-pos, mode) - 1;
+            count = decode(instr, count + 1, &bytes[dest - vaddr], dest, len-pos, mode, 0) - 1;
           }
           // finish decoding current block (but don't create new label/bb)
           break;
@@ -524,7 +535,7 @@ int decode(instr_t instr[], int instr_pos, byte_t bytes[], int vaddr, int len, d
           if (mode == DECODE_RECURSIVE) {
             // Recursively decode jump case
             long long dest = instr[count].addr + instr[count].len + instr[count].value;
-            count = decode(instr, count + 1, &bytes[dest - vaddr], dest, len-pos, mode) - 1;
+            count = decode(instr, count + 1, &bytes[dest - vaddr], dest, len-pos, mode, sub_addr) - 1;
           }
           // finish decoding fall-through case
           label_pending = true;
@@ -539,8 +550,6 @@ int decode(instr_t instr[], int instr_pos, byte_t bytes[], int vaddr, int len, d
 }
 
 void proc_flow_labels(instr_t instr[], int count) {
-  int new_label_count = 0;
-
   for (int i = 0; i < count; i++) {
     long long dest = 0;
 
@@ -591,7 +600,7 @@ PROC_JUMP: ;
 
     // Create label for dest instr, if it hasn't got one yet
     if (dest_instr->label[0] == '\0')
-      snprintf(dest_instr->label, LABEL_LEN, ".LL%d", new_label_count++);
+      snprintf(dest_instr->label, LABEL_LEN, "sub_%x_%x", dest_instr->sub_addr, dest_instr->addr);
 
     // Print # dest label
     snprintf(instr[i].mnemo_notes, MNEMO_NOTES_LEN, "%s", dest_instr->label);
