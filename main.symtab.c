@@ -62,10 +62,12 @@ int main(int argc, const char *argv[]) {
 
   // Print
   for (int i = 0; i < n_symbols; i++) {
-    if (symbols[i].type != STT_FUNC && symbols[i].type != STT_NOTYPE)
+    // Show only functions
+    if (symbols[i].type != STT_FUNC)
       continue;
 
-    if (symbols[i].value == 0) {
+    if (symbols[i].shndx == 0) {
+      // Unrelated to a specific section
       printf("%-16s %c %s\n", " ", get_symbol_type(symbols[i]), symbols[i].name);
     } else {
       printf("%016lx %c %s\n", symbols[i].value, get_symbol_type(symbols[i]), symbols[i].name);
